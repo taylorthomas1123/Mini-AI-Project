@@ -1,0 +1,1318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Willowbrook Clinic — Appointment Ledger</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+  :root{
+    --paper: #F5F1E7;
+    --paper-raised: #FBF9F3;
+    --ink: #1F2D3A;
+    --ink-soft: #55677A;
+    --line: #DAD2BE;
+    --teal: #2F7A6E;
+    --teal-deep: #204F47;
+    --amber: #C2872F;
+    --red: #B0473C;
+    --shadow: 0 1px 2px rgba(31,45,58,0.06), 0 8px 24px -12px rgba(31,45,58,0.18);
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Inter', sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  ::selection{background:var(--teal); color:#fff;}
+
+  a{color:inherit;}
+
+  /* ---------- layout shell ---------- */
+  .wrap{
+    max-width:1080px;
+    margin:0 auto;
+    padding:28px 20px 80px;
+  }
+
+  header.top{
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap:16px;
+    border-bottom:2px solid var(--ink);
+    padding-bottom:16px;
+    margin-bottom:28px;
+    flex-wrap:wrap;
+  }
+  .brand{
+    display:flex;
+    align-items:center;
+    gap:14px;
+  }
+  .brand-mark{
+    width:42px;height:42px;
+    border-radius:3px;
+    background:var(--teal-deep);
+    display:flex;align-items:center;justify-content:center;
+    color:#F5F1E7;
+    font-family:'Fraunces', serif;
+    font-weight:600;
+    font-size:19px;
+    flex:none;
+    box-shadow:var(--shadow);
+  }
+  .brand h1{
+    font-family:'Fraunces', serif;
+    font-weight:600;
+    font-size:26px;
+    margin:0;
+    letter-spacing:-0.01em;
+  }
+  .brand p{
+    margin:2px 0 0;
+    font-size:13px;
+    color:var(--ink-soft);
+    font-family:'IBM Plex Mono', monospace;
+    letter-spacing:0.02em;
+  }
+  .today-tag{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12.5px;
+    color:var(--ink-soft);
+    text-align:right;
+    line-height:1.6;
+  }
+  .today-tag b{color:var(--ink); font-weight:500;}
+
+  /* ---------- grid ---------- */
+  .layout{
+    display:grid;
+    grid-template-columns: 1fr 300px;
+    gap:24px;
+    align-items:start;
+  }
+  @media (max-width:800px){
+    .layout{grid-template-columns:1fr;}
+  }
+
+  .card{
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    border-radius:6px;
+    box-shadow:var(--shadow);
+  }
+
+  .section-label{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    margin:0 0 10px;
+  }
+
+  /* ---------- doctor tabs ---------- */
+  .doctors{
+    display:flex;
+    gap:10px;
+    margin-bottom:22px;
+    flex-wrap:wrap;
+  }
+  .doc-tab{
+    position:relative;
+    flex:1 1 200px;
+    min-width:180px;
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:12px 14px;
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    border-top:3px solid var(--tab-color, var(--teal));
+    border-radius:4px;
+    cursor:pointer;
+    text-align:left;
+    font-family:'Inter', sans-serif;
+    transition:transform .15s ease, box-shadow .15s ease;
+  }
+  .doc-tab:hover{transform:translateY(-1px); box-shadow:var(--shadow);}
+  .doc-tab.active{
+    background:var(--ink);
+    border-color:var(--ink);
+  }
+  .doc-tab.active .doc-name, .doc-tab.active .doc-spec{color:#F5F1E7;}
+  .doc-tab.active .doc-spec{color:#C7D0D8;}
+  .doc-avatar{
+    width:36px;height:36px;border-radius:50%;
+    background:var(--tab-color, var(--teal));
+    color:#fff;
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Fraunces', serif;font-weight:600;font-size:14px;
+    flex:none;
+  }
+  .doc-name{font-size:14px;font-weight:600;}
+  .doc-spec{font-size:12px;color:var(--ink-soft);margin-top:1px;}
+
+  /* ---------- month calendar ---------- */
+  .calendar-card{
+    padding:18px 20px 20px;
+    margin-bottom:24px;
+  }
+  .cal-body{
+    display:grid;
+    grid-template-rows:1fr;
+    transition:grid-template-rows .28s ease;
+  }
+  .cal-body-inner{
+    overflow:hidden;
+    opacity:1;
+    transition:opacity .18s ease;
+  }
+  .cal-body.collapsed{
+    grid-template-rows:0fr;
+  }
+  .cal-body.collapsed .cal-body-inner{
+    opacity:0;
+  }
+  .cal-summary-row{
+    display:none;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    animation:fadeIn .2s ease;
+  }
+  @keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+  .cal-summary-row.show{display:flex;}
+  .cal-summary-label{
+    margin:0;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10.5px;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+  }
+  .cal-summary-date{
+    margin:3px 0 0;
+    font-family:'Fraunces', serif;
+    font-weight:500;
+    font-size:16.5px;
+  }
+  .cal-change-btn{
+    padding:9px 14px;
+    font-size:12.5px;
+  }
+  .calendar-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:14px;
+  }
+  .cal-month-label{
+    font-family:'Fraunces', serif;
+    font-weight:500;
+    font-size:16.5px;
+    letter-spacing:0.01em;
+  }
+  .cal-nav{
+    width:30px;height:30px;
+    border-radius:4px;
+    border:1px solid var(--line);
+    background:var(--paper-raised);
+    color:var(--ink);
+    font-size:16px;
+    line-height:1;
+    padding:0;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .cal-nav:hover:not(:disabled){border-color:var(--ink-soft);}
+  .cal-nav:disabled{opacity:0.35; cursor:not-allowed;}
+  .weekday-row{
+    display:grid;
+    grid-template-columns:repeat(7,1fr);
+    gap:4px;
+    margin-bottom:6px;
+  }
+  .weekday-row span{
+    text-align:center;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10.5px;
+    letter-spacing:.06em;
+    color:var(--ink-soft);
+  }
+  .calendar-grid{
+    display:grid;
+    grid-template-columns:repeat(7,1fr);
+    gap:4px;
+  }
+  .cal-cell{
+    position:relative;
+    aspect-ratio:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13px;
+    border:1px solid var(--line);
+    border-radius:4px;
+    background:var(--paper-raised);
+    cursor:pointer;
+    color:var(--ink);
+  }
+  .cal-cell:hover:not(.disabled):not(.active){border-color:var(--teal); color:var(--teal-deep);}
+  .cal-cell.other-month{
+    color:#C9C0AE;
+    border-color:transparent;
+    background:transparent;
+  }
+  .cal-cell.disabled{
+    cursor:not-allowed;
+    color:#C9C0AE;
+    background:transparent;
+    border-color:transparent;
+  }
+  .cal-cell.today:not(.active)::after{
+    content:'';
+    position:absolute;
+    bottom:5px;
+    width:4px;height:4px;
+    border-radius:50%;
+    background:var(--amber);
+  }
+  .cal-cell.active{
+    background:var(--teal);
+    border-color:var(--teal);
+    color:#fff;
+    font-weight:500;
+  }
+  @media (max-width:420px){
+    .cal-cell{font-size:12px;}
+  }
+
+  /* ---------- ledger slot grid ---------- */
+  .ledger{
+    padding:20px;
+  }
+  .meridiem{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:.14em;
+    color:var(--ink-soft);
+    margin:18px 0 8px;
+    padding-bottom:6px;
+    border-bottom:1px dashed var(--line);
+  }
+  .meridiem:first-child{margin-top:0;}
+  .slot-row{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(84px,1fr));
+    gap:8px;
+    background-image: repeating-linear-gradient(var(--paper-raised) 0 47px, var(--line) 47px 48px);
+  }
+  .slot{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13px;
+    padding:11px 4px;
+    text-align:center;
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    border-radius:3px;
+    cursor:pointer;
+    transition:all .12s ease;
+  }
+  .slot:hover:not(.taken){border-color:var(--teal); color:var(--teal-deep);}
+  .slot.selected{
+    background:var(--amber);
+    border-color:var(--amber);
+    color:#fff;
+    font-weight:500;
+  }
+  .slot.taken{
+    color:#B7ADA0;
+    text-decoration:line-through;
+    cursor:not-allowed;
+    background:#EDE8DA;
+  }
+
+  /* ---------- booking drawer ---------- */
+  .drawer-backdrop{
+    position:fixed; inset:0;
+    background:rgba(31,45,58,0.35);
+    display:none;
+    align-items:flex-end;
+    justify-content:center;
+    z-index:40;
+  }
+  .drawer-backdrop.open{display:flex;}
+  .drawer{
+    background:var(--paper-raised);
+    width:100%;
+    max-width:520px;
+    border-radius:10px 10px 0 0;
+    padding:26px 24px 28px;
+    box-shadow:0 -10px 40px rgba(0,0,0,0.25);
+    animation:slideUp .22s ease;
+    max-height:88vh;
+    overflow-y:auto;
+  }
+  @keyframes slideUp{from{transform:translateY(24px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+  .drawer h2{
+    font-family:'Fraunces', serif;
+    font-size:21px;
+    margin:0 0 2px;
+  }
+  .drawer .sub{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12.5px;
+    color:var(--teal-deep);
+    margin:0 0 18px;
+  }
+  .field{margin-bottom:14px;}
+  .field label{
+    display:block;
+    font-size:12px;
+    font-weight:600;
+    color:var(--ink-soft);
+    margin-bottom:5px;
+  }
+  .field input, .field textarea{
+    width:100%;
+    font-family:'Inter', sans-serif;
+    font-size:14px;
+    padding:10px 11px;
+    border:1px solid var(--line);
+    border-radius:4px;
+    background:#fff;
+    color:var(--ink);
+  }
+  .field input:focus, .field textarea:focus{
+    outline:2px solid var(--teal);
+    outline-offset:1px;
+    border-color:var(--teal);
+  }
+  .field textarea{resize:vertical; min-height:64px;}
+  .drawer-actions{
+    display:flex;
+    gap:10px;
+    margin-top:20px;
+  }
+  button{
+    font-family:'Inter', sans-serif;
+    font-size:14px;
+    font-weight:600;
+    border:none;
+    border-radius:5px;
+    padding:12px 18px;
+    cursor:pointer;
+    transition:opacity .15s ease, transform .1s ease;
+  }
+  button:active{transform:scale(0.98);}
+  button:focus-visible{outline:2px solid var(--ink); outline-offset:2px;}
+  .btn-primary{background:var(--teal); color:#fff; flex:1;}
+  .btn-primary:hover{background:var(--teal-deep);}
+  .btn-primary:disabled{background:#B7ADA0; cursor:not-allowed;}
+  .btn-ghost{background:transparent; color:var(--ink-soft); border:1px solid var(--line);}
+  .btn-ghost:hover{color:var(--ink); border-color:var(--ink-soft);}
+  .error-msg{
+    font-size:12.5px;
+    color:var(--red);
+    margin-top:-6px;
+    margin-bottom:12px;
+    display:none;
+  }
+  .error-msg.show{display:block;}
+
+  /* ---------- confirmation ---------- */
+  .confirm{
+    text-align:center;
+    padding:6px 4px 4px;
+  }
+  .stamp{
+    width:112px;height:112px;
+    margin:6px auto 14px;
+    border-radius:50%;
+    border:3px solid var(--teal);
+    color:var(--teal);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    font-family:'IBM Plex Mono', monospace;
+    transform:rotate(-8deg) scale(0);
+    animation:stampDown .4s cubic-bezier(.2,1.5,.4,1) forwards .05s;
+  }
+  .stamp::before{
+    content:'';
+    position:absolute;
+    width:96px;height:96px;
+    border-radius:50%;
+    border:1px solid var(--teal);
+  }
+  @keyframes stampDown{
+    0%{transform:rotate(-18deg) scale(2.2); opacity:0;}
+    60%{opacity:1;}
+    100%{transform:rotate(-8deg) scale(1); opacity:1;}
+  }
+  .stamp b{font-size:13px; letter-spacing:.08em;}
+  .stamp span{font-size:10.5px; margin-top:3px;}
+  .confirm h2{font-family:'Fraunces', serif; margin:0 0 6px;}
+  .confirm-detail{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13px;
+    color:var(--ink-soft);
+    line-height:1.9;
+    text-align:left;
+    background:var(--paper);
+    border:1px dashed var(--line);
+    border-radius:5px;
+    padding:14px 16px;
+    margin:16px 0 20px;
+  }
+  .confirm-detail div{display:flex; justify-content:space-between; gap:12px;}
+  .confirm-detail b{color:var(--ink); font-weight:500;}
+
+  /* ---------- sidebar ---------- */
+  .sidebar-card{padding:18px;}
+  .my-appt{
+    border:1px solid var(--line);
+    border-radius:5px;
+    padding:11px 12px;
+    margin-bottom:10px;
+    background:var(--paper);
+  }
+  .my-appt .doc{font-size:13.5px; font-weight:600;}
+  .my-appt .when{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    color:var(--teal-deep);
+    margin-top:2px;
+  }
+  .my-appt .cancel-link{
+    font-size:11.5px;
+    color:var(--red);
+    background:none;
+    border:none;
+    padding:6px 0 0;
+    font-weight:600;
+    cursor:pointer;
+  }
+  .my-appt .cancel-link:hover{text-decoration:underline;}
+  .my-appt .test-link{
+    font-size:11.5px;
+    color:var(--ink-soft);
+    background:none;
+    border:none;
+    padding:0;
+    font-weight:600;
+    cursor:pointer;
+  }
+  .my-appt .test-link:hover{color:var(--teal-deep); text-decoration:underline;}
+  .empty-note{
+    font-size:13px;
+    color:var(--ink-soft);
+    line-height:1.6;
+  }
+  .privacy-note{
+    font-size:11px;
+    color:var(--ink-soft);
+    line-height:1.6;
+    margin-top:16px;
+    padding-top:14px;
+    border-top:1px dashed var(--line);
+  }
+  .reminder-banner{
+    display:none;
+    align-items:center;
+    gap:12px;
+    background:var(--teal-deep);
+    color:#F5F1E7;
+    border-radius:6px;
+    padding:13px 16px;
+    margin-bottom:22px;
+    font-size:13.5px;
+    box-shadow:var(--shadow);
+  }
+  .reminder-banner.show{display:flex;}
+  .reminder-banner .bell{
+    font-size:17px;
+    flex:none;
+  }
+  .reminder-banner .msg{flex:1; line-height:1.5;}
+  .reminder-banner .msg b{font-weight:600;}
+  .reminder-banner button{
+    background:rgba(245,241,231,0.14);
+    color:#F5F1E7;
+    padding:7px 12px;
+    font-size:12px;
+    flex:none;
+  }
+  .reminder-banner button:hover{background:rgba(245,241,231,0.24);}
+
+  .appt-top-row{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:8px;
+  }
+  .relative-badge{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10.5px;
+    letter-spacing:.03em;
+    padding:3px 7px;
+    border-radius:3px;
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    color:var(--ink-soft);
+    flex:none;
+    white-space:nowrap;
+  }
+  .relative-badge.soon{
+    background:var(--amber);
+    border-color:var(--amber);
+    color:#fff;
+  }
+  .appt-actions{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    margin-top:7px;
+    flex-wrap:wrap;
+    row-gap:6px;
+  }
+  .bell-toggle{
+    background:none;
+    border:none;
+    padding:0;
+    font-size:11.5px;
+    font-weight:600;
+    color:var(--ink-soft);
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    gap:5px;
+  }
+  .bell-toggle:hover{color:var(--ink);}
+  .bell-toggle.on{color:var(--teal-deep);}
+  .bell-toggle .dot{
+    width:6px;height:6px;border-radius:50%;
+    background:var(--line);
+    flex:none;
+  }
+  .bell-toggle.on .dot{background:var(--teal);}
+
+  .reminder-field{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    background:var(--paper);
+    border:1px dashed var(--line);
+    border-radius:5px;
+    padding:10px 12px;
+    margin-bottom:14px;
+    font-size:12.5px;
+    color:var(--ink-soft);
+  }
+  .reminder-field input[type=checkbox]{
+    width:15px;height:15px;
+    accent-color:var(--teal);
+    flex:none;
+  }
+
+  .toast{
+    position:fixed;
+    bottom:20px; left:50%;
+    transform:translateX(-50%) translateY(8px);
+    background:var(--ink);
+    color:#F5F1E7;
+    padding:11px 18px;
+    border-radius:5px;
+    font-size:13px;
+    opacity:0;
+    pointer-events:none;
+    transition:all .2s ease;
+    z-index:60;
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:0.001s !important; transition-duration:0.001s !important;}
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <div class="brand-mark">W</div>
+      <div>
+        <h1>Willowbrook Clinic</h1>
+        <p>appointment ledger</p>
+      </div>
+    </div>
+    <div class="today-tag" id="todayTag"></div>
+  </header>
+
+  <div class="reminder-banner" id="reminderBanner">
+    <span class="bell">🔔</span>
+    <span class="msg" id="reminderBannerMsg"></span>
+    <button type="button" id="reminderBannerDismiss">Dismiss</button>
+  </div>
+
+  <div class="layout">
+    <main>
+      <p class="section-label">Choose a doctor</p>
+      <div class="doctors" id="doctorTabs"></div>
+
+      <p class="section-label">Choose a date</p>
+      <div class="card calendar-card">
+        <div class="cal-summary-row" id="calSummaryRow">
+          <div>
+            <p class="cal-summary-label">Date</p>
+            <p class="cal-summary-date" id="calSummaryDate"></p>
+          </div>
+          <button type="button" class="btn-ghost cal-change-btn" id="calChangeBtn">Change date</button>
+        </div>
+        <div class="cal-body" id="calBody">
+          <div class="cal-body-inner">
+            <div class="calendar-header">
+              <button class="cal-nav" id="calPrev" type="button" aria-label="Previous month">‹</button>
+              <span class="cal-month-label" id="calMonthLabel"></span>
+              <button class="cal-nav" id="calNext" type="button" aria-label="Next month">›</button>
+            </div>
+            <div class="weekday-row" id="weekdayRow"></div>
+            <div class="calendar-grid" id="calendarGrid"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card ledger" id="ledgerCard">
+        <div id="slotArea"></div>
+      </div>
+    </main>
+
+    <aside>
+      <div class="card sidebar-card">
+        <p class="section-label">Your appointments</p>
+        <div id="myAppts"></div>
+        <p class="privacy-note">Slot availability is shared with everyone using this page, so times you see as taken were booked by someone else. Your name and contact details stay on this device only.</p>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<div class="drawer-backdrop" id="drawerBackdrop">
+  <div class="drawer" id="drawerContent"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+
+  const DOCTORS = [
+    { id:'dr-alvarez', name:'Dr. Rosa Alvarez', specialty:'Family Medicine', color:'#2F7A6E' },
+    { id:'dr-nakamura', name:'Dr. Kenji Nakamura', specialty:'Internal Medicine', color:'#C2872F' },
+    { id:'dr-obi', name:'Dr. Amara Obi', specialty:'Pediatrics', color:'#5E6FA3' },
+  ];
+
+  const AM_TIMES = ['09:00','09:30','10:00','10:30','11:00','11:30'];
+  const PM_TIMES = ['13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30'];
+
+  let state = {
+    doctorId: DOCTORS[0].id,
+    date: null,        // yyyy-mm-dd, the selected appointment date
+    selectedTime: null,
+    calYear: null,      // year currently shown in the calendar
+    calMonth: null,     // month currently shown in the calendar (0-indexed)
+    calendarCollapsed: false,
+    myBookings: []
+  };
+
+  function pad(n){ return n<10 ? '0'+n : ''+n; }
+  function isoOf(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+  function dowShort(d){ return ['SUN','MON','TUE','WED','THU','FRI','SAT'][d.getDay()]; }
+  function startOfDay(d){ const c = new Date(d); c.setHours(0,0,0,0); return c; }
+
+  function initDate(){
+    const today = new Date();
+    state.date = isoOf(today);
+    state.calYear = today.getFullYear();
+    state.calMonth = today.getMonth();
+  }
+
+  function initials(name){
+    return name.replace('Dr. ','').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  }
+
+  function fmtDateLong(iso){
+    const [y,m,d] = iso.split('-').map(Number);
+    const dt = new Date(y, m-1, d);
+    return dt.toLocaleDateString(undefined, { weekday:'long', month:'long', day:'numeric' });
+  }
+  function fmtTime(t){
+    let [h,m] = t.split(':').map(Number);
+    const ap = h>=12 ? 'PM' : 'AM';
+    let h12 = h%12; if(h12===0) h12=12;
+    return h12+':'+pad(m)+' '+ap;
+  }
+
+  function apptDateTime(booking){
+    const [y,mo,d] = booking.date.split('-').map(Number);
+    const [h,mi] = booking.time.split(':').map(Number);
+    return new Date(y, mo-1, d, h, mi);
+  }
+
+  function relativeLabel(booking){
+    const now = new Date();
+    const target = apptDateTime(booking);
+    const diffMs = target - now;
+    const diffMin = Math.round(diffMs/60000);
+    if(diffMs < 0) return { text:'Past', soon:false };
+    if(diffMin < 60) return { text:'In '+Math.max(diffMin,0)+' min', soon:true };
+    const sameDay = now.toDateString() === target.toDateString();
+    if(sameDay) return { text:'Today · '+fmtTime(booking.time), soon: diffMin <= 180 };
+    const tmrw = new Date(now); tmrw.setDate(now.getDate()+1);
+    if(tmrw.toDateString() === target.toDateString()) return { text:'Tomorrow · '+fmtTime(booking.time), soon:false };
+    const diffDays = Math.round((target.setHours(0,0,0,0) - new Date().setHours(0,0,0,0)) / 86400000);
+    return { text:'In '+diffDays+' days', soon:false };
+  }
+
+  // ---------- reminders ----------
+  const activeTimers = {};       // bookingId -> timeout handle, this session only
+  const dismissedBanner = new Set();
+  const MAX_TIMEOUT = 24 * 24 * 60 * 60 * 1000; // stay well under the ~24.8 day setTimeout ceiling
+
+  function hasNotifications(){
+    return typeof Notification !== 'undefined';
+  }
+
+  async function requestNotifyPermission(){
+    if(!hasNotifications()) return false;
+    if(Notification.permission === 'granted') return true;
+    if(Notification.permission === 'denied') return false;
+    try{
+      const perm = await Notification.requestPermission();
+      return perm === 'granted';
+    }catch(e){ return false; }
+  }
+
+  function clearReminderTimer(id){
+    if(activeTimers[id]){
+      clearTimeout(activeTimers[id]);
+      delete activeTimers[id];
+    }
+  }
+
+  function armReminderTimer(booking){
+    clearReminderTimer(booking.id);
+    const target = apptDateTime(booking);
+    const fireAt = new Date(target.getTime() - 24*60*60000); // 1 day before
+    const msUntil = fireAt - new Date();
+    if(msUntil <= 0 || msUntil > MAX_TIMEOUT) return; // already inside the 1-day window, or too far out to schedule this session
+    activeTimers[booking.id] = setTimeout(()=>{
+      fireReminder(booking);
+    }, msUntil);
+  }
+
+  function fireReminder(booking){
+    // A real, working channel: an on-device notification, while this tab stays open.
+    if(hasNotifications() && Notification.permission === 'granted'){
+      try{
+        new Notification('Appointment tomorrow', {
+          body: `${booking.doctorName} — ${fmtDateLong(booking.date)} at ${fmtTime(booking.time)}`
+        });
+      }catch(e){ /* ignore */ }
+    }
+    showReminderPreview(booking);
+  }
+
+  function showReminderPreview(booking){
+    const backdrop = document.getElementById('drawerBackdrop');
+    const content = document.getElementById('drawerContent');
+    const emailBody = `Hi ${booking.patientName.split(' ')[0] || 'there'},
+
+This is a reminder that you have an appointment tomorrow:
+
+  ${booking.doctorName}
+  ${fmtDateLong(booking.date)} at ${fmtTime(booking.time)}
+  Willowbrook Clinic
+
+Confirmation code: ${booking.id}
+
+See you then.`;
+    const textBody = `Willowbrook Clinic: reminder — your appointment with ${booking.doctorName} is tomorrow, ${fmtDateLong(booking.date)} at ${fmtTime(booking.time)}. Code ${booking.id}.`;
+
+    content.innerHTML = `
+      <h2>Reminder preview</h2>
+      <p class="sub">What would go to ${booking.email || 'the email on file'} and ${booking.phone || 'the phone on file'}.</p>
+      <p class="section-label" style="margin-top:16px;">Email</p>
+      <div class="confirm-detail" style="text-align:left; white-space:pre-wrap; font-family:'Inter',sans-serif; font-size:13px;">${emailBody}</div>
+      <p class="section-label">Text message</p>
+      <div class="confirm-detail" style="text-align:left; white-space:pre-wrap; font-family:'Inter',sans-serif; font-size:13px;">${textBody}</div>
+      <div class="drawer-actions">
+        <button class="btn-primary" id="previewCloseBtn" type="button" style="flex:1;">Close</button>
+      </div>
+    `;
+    backdrop.classList.add('open');
+    document.getElementById('previewCloseBtn').onclick = ()=> backdrop.classList.remove('open');
+    backdrop.onclick = (e)=>{ if(e.target===backdrop) backdrop.classList.remove('open'); };
+  }
+
+  async function enableReminder(booking, opts){
+    opts = opts || {};
+    const granted = await requestNotifyPermission();
+    booking.reminder = true;
+    armReminderTimer(booking);
+    let mine = await getMyBookings();
+    mine = mine.map(b=> b.id===booking.id ? Object.assign({}, b, { reminder:true }) : b);
+    await window.storage.set('bookings', JSON.stringify(mine), false);
+    if(!opts.silent){
+      showToast('Reminder on — 1 day before.');
+    }
+  }
+
+  async function disableReminder(bookingId){
+    clearReminderTimer(bookingId);
+    let mine = await getMyBookings();
+    mine = mine.map(b=> b.id===bookingId ? Object.assign({}, b, { reminder:false }) : b);
+    await window.storage.set('bookings', JSON.stringify(mine), false);
+    showToast('Reminder off.');
+  }
+
+  function scheduleAllReminders(bookings){
+    bookings.forEach(b=>{
+      if(b.reminder && apptDateTime(b) > new Date()){
+        armReminderTimer(b);
+      }
+    });
+  }
+
+  function renderReminderBanner(bookings){
+    const banner = document.getElementById('reminderBanner');
+    const now = new Date();
+    const upcoming = bookings
+      .filter(b => !dismissedBanner.has(b.id))
+      .map(b => ({ b, mins: (apptDateTime(b) - now)/60000 }))
+      .filter(x => x.mins > 0 && x.mins <= 24*60)
+      .sort((a,b)=>a.mins-b.mins);
+
+    if(upcoming.length===0){
+      banner.classList.remove('show');
+      return;
+    }
+    const { b, mins } = upcoming[0];
+    const when = mins <= 60 ? Math.round(mins)+' minutes' : (b.date === isoOf(new Date()) ? 'today at '+fmtTime(b.time) : 'tomorrow at '+fmtTime(b.time));
+    document.getElementById('reminderBannerMsg').innerHTML =
+      `Upcoming: <b>${b.doctorName}</b> ${mins<=60 ? 'in '+when : when}.`;
+    banner.classList.add('show');
+    banner.dataset.bookingId = b.id;
+  }
+
+  // ---------- rendering ----------
+  function renderHeader(){
+    const now = new Date();
+    document.getElementById('todayTag').innerHTML =
+      'today &nbsp;<b>'+now.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})+'</b>';
+  }
+
+  function renderDoctors(){
+    const wrap = document.getElementById('doctorTabs');
+    wrap.innerHTML = '';
+    DOCTORS.forEach(doc=>{
+      const el = document.createElement('button');
+      el.className = 'doc-tab' + (doc.id===state.doctorId ? ' active' : '');
+      el.style.setProperty('--tab-color', doc.color);
+      el.innerHTML = `
+        <div class="doc-avatar">${initials(doc.name)}</div>
+        <div>
+          <div class="doc-name">${doc.name}</div>
+          <div class="doc-spec">${doc.specialty}</div>
+        </div>`;
+      el.onclick = ()=>{ state.doctorId = doc.id; state.selectedTime=null; renderAll(); };
+      wrap.appendChild(el);
+    });
+  }
+
+  const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const WEEKDAY_LABELS = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+
+  function renderCalendar(){
+    document.getElementById('calMonthLabel').textContent =
+      MONTH_NAMES[state.calMonth] + ' ' + state.calYear;
+
+    const weekdayRow = document.getElementById('weekdayRow');
+    if(weekdayRow.childElementCount === 0){
+      weekdayRow.innerHTML = WEEKDAY_LABELS.map(w=>`<span>${w}</span>`).join('');
+    }
+
+    const today = startOfDay(new Date());
+    const firstOfMonth = new Date(state.calYear, state.calMonth, 1);
+    const firstWeekday = firstOfMonth.getDay();
+    const totalDaysInMonth = new Date(state.calYear, state.calMonth+1, 0).getDate();
+    const totalCells = Math.ceil((firstWeekday + totalDaysInMonth) / 7) * 7;
+
+    const prevMonthDays = new Date(state.calYear, state.calMonth, 0).getDate();
+
+    const grid = document.getElementById('calendarGrid');
+    grid.innerHTML = '';
+
+    for(let i=0;i<totalCells;i++){
+      const dayNum = i - firstWeekday + 1;
+      const cell = document.createElement('div');
+      cell.className = 'cal-cell';
+
+      if(dayNum < 1){
+        cell.classList.add('other-month');
+        cell.textContent = prevMonthDays + dayNum;
+      } else if(dayNum > totalDaysInMonth){
+        cell.classList.add('other-month');
+        cell.textContent = dayNum - totalDaysInMonth;
+      } else {
+        cell.textContent = dayNum;
+        const cellDate = new Date(state.calYear, state.calMonth, dayNum);
+        const iso = isoOf(cellDate);
+        const isPast = cellDate < today;
+        const isToday = cellDate.getTime() === today.getTime();
+
+        if(isToday) cell.classList.add('today');
+        if(iso === state.date) cell.classList.add('active');
+
+        if(isPast){
+          cell.classList.add('disabled');
+        } else {
+          cell.onclick = ()=>{
+            state.date = iso;
+            state.selectedTime = null;
+            state.calendarCollapsed = true;
+            renderCalendar();
+            renderSlots();
+          };
+        }
+      }
+      grid.appendChild(cell);
+    }
+
+    const isCurrentMonth = state.calYear === today.getFullYear() && state.calMonth === today.getMonth();
+    document.getElementById('calPrev').disabled = isCurrentMonth;
+
+    document.getElementById('calSummaryDate').textContent = fmtDateLong(state.date);
+    document.getElementById('calSummaryRow').classList.toggle('show', state.calendarCollapsed);
+    document.getElementById('calBody').classList.toggle('collapsed', state.calendarCollapsed);
+  }
+
+  document.getElementById('calChangeBtn').onclick = ()=>{
+    state.calendarCollapsed = false;
+    renderCalendar();
+  };
+
+  document.getElementById('calPrev').onclick = ()=>{
+    state.calMonth -= 1;
+    if(state.calMonth < 0){ state.calMonth = 11; state.calYear -= 1; }
+    renderCalendar();
+  };
+  document.getElementById('calNext').onclick = ()=>{
+    state.calMonth += 1;
+    if(state.calMonth > 11){ state.calMonth = 0; state.calYear += 1; }
+    renderCalendar();
+  };
+
+  async function getTakenSlots(){
+    try{
+      const key = 'slots:'+state.doctorId+':'+state.date;
+      const res = await window.storage.get(key, true);
+      return res && res.value ? JSON.parse(res.value) : [];
+    }catch(e){
+      return [];
+    }
+  }
+
+  async function renderSlots(){
+    const area = document.getElementById('slotArea');
+    area.innerHTML = '<p class="empty-note">Loading available times…</p>';
+    const taken = await getTakenSlots();
+
+    function buildRow(times){
+      const row = document.createElement('div');
+      row.className = 'slot-row';
+      times.forEach(t=>{
+        const isTaken = taken.includes(t);
+        const btn = document.createElement('div');
+        btn.className = 'slot' + (isTaken?' taken':'') + (state.selectedTime===t?' selected':'');
+        btn.textContent = fmtTime(t);
+        if(!isTaken){
+          btn.onclick = ()=>{ state.selectedTime = t; openDrawer(); };
+        }
+        row.appendChild(btn);
+      });
+      return row;
+    }
+
+    area.innerHTML = '';
+    const amLabel = document.createElement('p');
+    amLabel.className = 'meridiem';
+    amLabel.textContent = 'Morning';
+    area.appendChild(amLabel);
+    area.appendChild(buildRow(AM_TIMES));
+
+    const pmLabel = document.createElement('p');
+    pmLabel.className = 'meridiem';
+    pmLabel.textContent = 'Afternoon';
+    area.appendChild(pmLabel);
+    area.appendChild(buildRow(PM_TIMES));
+  }
+
+  // ---------- booking drawer ----------
+  function openDrawer(){
+    const doc = DOCTORS.find(d=>d.id===state.doctorId);
+    const backdrop = document.getElementById('drawerBackdrop');
+    const content = document.getElementById('drawerContent');
+    content.innerHTML = `
+      <h2>Book this time</h2>
+      <p class="sub">${doc.name} · ${fmtDateLong(state.date)} · ${fmtTime(state.selectedTime)}</p>
+      <div class="field">
+        <label for="pName">Full name</label>
+        <input id="pName" type="text" placeholder="Jordan Reyes">
+      </div>
+      <div class="field">
+        <label for="pPhone">Phone number</label>
+        <input id="pPhone" type="tel" placeholder="(555) 555-0100">
+      </div>
+      <div class="field">
+        <label for="pEmail">Email</label>
+        <input id="pEmail" type="email" placeholder="jordan@example.com">
+      </div>
+      <div class="field">
+        <label for="pReason">Reason for visit</label>
+        <textarea id="pReason" placeholder="Annual check-up, follow-up, new symptom…"></textarea>
+      </div>
+      <label class="reminder-field">
+        <input type="checkbox" id="pReminder" checked>
+        <span>Email &amp; text reminder 1 day before the appointment</span>
+      </label>
+      <p class="error-msg" id="formError">Please fill in your name, phone, and email.</p>
+      <div class="drawer-actions">
+        <button class="btn-ghost" id="cancelBtn" type="button">Cancel</button>
+        <button class="btn-primary" id="confirmBtn" type="button">Confirm appointment</button>
+      </div>
+    `;
+    backdrop.classList.add('open');
+    document.getElementById('cancelBtn').onclick = closeDrawer;
+    document.getElementById('confirmBtn').onclick = submitBooking;
+    backdrop.onclick = (e)=>{ if(e.target===backdrop) closeDrawer(); };
+    setTimeout(()=>document.getElementById('pName').focus(), 50);
+  }
+
+  function closeDrawer(){
+    document.getElementById('drawerBackdrop').classList.remove('open');
+    state.selectedTime = null;
+    renderSlots();
+  }
+
+  async function submitBooking(){
+    const name = document.getElementById('pName').value.trim();
+    const phone = document.getElementById('pPhone').value.trim();
+    const email = document.getElementById('pEmail').value.trim();
+    const reason = document.getElementById('pReason').value.trim();
+    const errEl = document.getElementById('formError');
+
+    if(!name || !phone || !email){
+      errEl.classList.add('show');
+      return;
+    }
+    errEl.classList.remove('show');
+
+    const btn = document.getElementById('confirmBtn');
+    btn.disabled = true;
+    btn.textContent = 'Booking…';
+
+    try{
+      // re-check freshest availability to avoid double-booking
+      const taken = await getTakenSlots();
+      if(taken.includes(state.selectedTime)){
+        showToast('That time was just taken — pick another.');
+        closeDrawer();
+        return;
+      }
+      taken.push(state.selectedTime);
+      const slotKey = 'slots:'+state.doctorId+':'+state.date;
+      await window.storage.set(slotKey, JSON.stringify(taken), true);
+
+      const doc = DOCTORS.find(d=>d.id===state.doctorId);
+      const code = 'WB-' + Math.random().toString(36).slice(2,7).toUpperCase();
+      const wantsReminder = document.getElementById('pReminder').checked;
+      const booking = {
+        id: code,
+        doctorId: doc.id,
+        doctorName: doc.name,
+        date: state.date,
+        time: state.selectedTime,
+        patientName: name,
+        phone, email, reason,
+        reminder: wantsReminder,
+      };
+
+      const mine = await getMyBookings();
+      mine.push(booking);
+      await window.storage.set('bookings', JSON.stringify(mine), false);
+      state.myBookings = mine;
+
+      if(wantsReminder){
+        await enableReminder(booking, { silent:true });
+      }
+
+      showConfirmation(booking);
+    }catch(e){
+      showToast('Something went wrong saving your appointment. Please try again.');
+      btn.disabled = false;
+      btn.textContent = 'Confirm appointment';
+    }
+  }
+
+  function showConfirmation(booking){
+    const content = document.getElementById('drawerContent');
+    content.innerHTML = `
+      <div class="confirm">
+        <div class="stamp"><b>CONFIRMED</b><span>${booking.date.slice(5).replace('-','/')}</span></div>
+        <h2>You're booked</h2>
+        <p class="sub" style="text-align:center;">A ledger entry has been made in your name.</p>
+        <div class="confirm-detail">
+          <div><span>Doctor</span><b>${booking.doctorName}</b></div>
+          <div><span>Date</span><b>${fmtDateLong(booking.date)}</b></div>
+          <div><span>Time</span><b>${fmtTime(booking.time)}</b></div>
+          <div><span>Confirmation</span><b>${booking.id}</b></div>
+        </div>
+        <p class="empty-note" style="margin:-8px 0 4px;">${
+          booking.reminder
+            ? 'An email &amp; text reminder is set for 1 day before. Use "Test reminder" any time from "Your appointments" to see what it will say.'
+            : 'No reminder set. You can turn one on any time from "Your appointments."'
+        }</p>
+        <div class="drawer-actions">
+          <button class="btn-primary" id="doneBtn" type="button" style="flex:1;">Done</button>
+        </div>
+      </div>
+    `;
+    document.getElementById('doneBtn').onclick = ()=>{
+      document.getElementById('drawerBackdrop').classList.remove('open');
+      state.selectedTime = null;
+      renderSlots();
+      renderMyAppts();
+    };
+  }
+
+  // ---------- my appointments ----------
+  async function getMyBookings(){
+    try{
+      const res = await window.storage.get('bookings', false);
+      return res && res.value ? JSON.parse(res.value) : [];
+    }catch(e){
+      return [];
+    }
+  }
+
+  async function renderMyAppts(){
+    const wrap = document.getElementById('myAppts');
+    wrap.innerHTML = '<p class="empty-note">Loading…</p>';
+    const mine = await getMyBookings();
+    state.myBookings = mine;
+
+    renderReminderBanner(mine);
+    scheduleAllReminders(mine);
+
+    if(mine.length===0){
+      wrap.innerHTML = '<p class="empty-note">No appointments yet. Pick a time on the left to book one.</p>';
+      return;
+    }
+    mine.sort((a,b)=> (a.date+a.time).localeCompare(b.date+b.time));
+    wrap.innerHTML = '';
+    mine.forEach(b=>{
+      const rel = relativeLabel(b);
+      const el = document.createElement('div');
+      el.className = 'my-appt';
+      el.innerHTML = `
+        <div class="appt-top-row">
+          <div>
+            <div class="doc">${b.doctorName}</div>
+            <div class="when">${fmtDateLong(b.date)} · ${fmtTime(b.time)}</div>
+          </div>
+          <span class="relative-badge${rel.soon ? ' soon':''}">${rel.text}</span>
+        </div>
+        <div class="appt-actions">
+          <button class="bell-toggle${b.reminder ? ' on':''}" type="button" title="Toggle reminder">
+            <span class="dot"></span>${b.reminder ? 'Reminder on' : 'Remind me'}
+          </button>
+          <button class="test-link" type="button">Test reminder</button>
+          <button class="cancel-link" type="button">Cancel</button>
+        </div>
+      `;
+      el.querySelector('.bell-toggle').onclick = async ()=>{
+        if(b.reminder){ await disableReminder(b.id); } else { await enableReminder(b); }
+        renderMyAppts();
+      };
+      el.querySelector('.test-link').onclick = async ()=>{
+        await requestNotifyPermission();
+        fireReminder(b);
+      };
+      el.querySelector('.cancel-link').onclick = ()=>cancelBooking(b);
+      wrap.appendChild(el);
+    });
+  }
+
+  async function cancelBooking(booking){
+    clearReminderTimer(booking.id);
+    try{
+      const key = 'slots:'+booking.doctorId+':'+booking.date;
+      const res = await window.storage.get(key, true).catch(()=>null);
+      let taken = res && res.value ? JSON.parse(res.value) : [];
+      taken = taken.filter(t=>t!==booking.time);
+      await window.storage.set(key, JSON.stringify(taken), true);
+
+      let mine = await getMyBookings();
+      mine = mine.filter(b=>b.id!==booking.id);
+      await window.storage.set('bookings', JSON.stringify(mine), false);
+
+      showToast('Appointment cancelled.');
+      renderMyAppts();
+      if(booking.doctorId===state.doctorId && booking.date===state.date){
+        renderSlots();
+      }
+    }catch(e){
+      showToast('Could not cancel right now. Please try again.');
+    }
+  }
+
+  let toastTimer;
+  function showToast(msg){
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(()=>t.classList.remove('show'), 3200);
+  }
+
+  function renderAll(){
+    renderHeader();
+    renderDoctors();
+    renderCalendar();
+    renderSlots();
+    renderMyAppts();
+  }
+
+  document.getElementById('reminderBannerDismiss').onclick = ()=>{
+    const id = document.getElementById('reminderBanner').dataset.bookingId;
+    if(id) dismissedBanner.add(id);
+    document.getElementById('reminderBanner').classList.remove('show');
+  };
+
+  initDate();
+  renderAll();
+})();
+</script>
+
+</body>
+</html>
